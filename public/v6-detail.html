@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Détail salarié V6</title>
+  <link rel="stylesheet" href="/css/v6.css">
+</head>
+<body>
+  <main class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">👤</div>
+        <div>
+          <h1 id="playerName">Chargement...</h1>
+          <p>Détail des pronostics</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="btn secondary" href="/v6-classement">← Retour classement</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h2>Résumé du participant</h2>
+
+      <div class="stats">
+        <div class="stat">
+          <strong id="totalPoints">-</strong>
+          <span>Total points</span>
+        </div>
+        <div class="stat">
+          <strong id="groupPoints">-</strong>
+          <span>Points poules</span>
+        </div>
+        <div class="stat">
+          <strong id="knockoutPoints">-</strong>
+          <span>Points phases finales</span>
+        </div>
+        <div class="stat">
+          <strong id="exactScores">-</strong>
+          <span>Scores exacts</span>
+        </div>
+        <div class="stat">
+          <strong id="goodResults">-</strong>
+          <span>Bons résultats</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Pronostics match par match</h3>
+      <div id="error"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Phase</th>
+              <th>Match</th>
+              <th>Prono</th>
+              <th>Résultat</th>
+              <th>Points</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="matchesBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/v6-detail.js"></script>
+</body>
+</html>
