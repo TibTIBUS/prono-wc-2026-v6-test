@@ -79,3 +79,12 @@ table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:14px;bor
     grid-template-columns:1fr;
   }
 }
+.player-link{
+  color: inherit;
+  text-decoration: none;
+  font-weight: inherit;
+}
+
+.player-link:hover{
+  text-decoration: underline;
+}
