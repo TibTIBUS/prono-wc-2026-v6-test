@@ -3,6 +3,11 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/"
+  to = "/v6-classement"
+  status = 302
+
+[[redirects]]
   from = "/v6-admin"
   to = "/v6-admin.html"
   status = 200
