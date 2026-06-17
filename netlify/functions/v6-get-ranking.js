@@ -76,6 +76,7 @@ exports.handler = async () => {
       rowsByEmployeeId.set(String(employee.id), {
         employee_id: employee.id,
         employee: employee.name,
+        name: employee.name,
         salarie: employee.name,
         group_points: 0,
         knockout_points: 0,
@@ -147,22 +148,31 @@ exports.handler = async () => {
 
     const completedGroupResults = results.length;
     const completedKnockoutResults = knockoutMatches.filter(m => m.status === "complete").length;
+    const leader = ranking[0]?.employee || ranking[0]?.salarie || "-";
+
+    const stats = {
+      employees: employees.length,
+      participants: employees.length,
+      leader,
+      matches: 72,
+      group_matches: 72,
+      results: completedGroupResults,
+      completed_results: completedGroupResults + completedKnockoutResults,
+      completed_group_results: completedGroupResults,
+      completed_knockout_results: completedKnockoutResults,
+      updated_at: new Date().toISOString()
+    };
 
     return json(200, {
       ranking,
       classement: ranking,
-      summary: {
-        employees: employees.length,
-        participants: employees.length,
-        completed_group_results: completedGroupResults,
-        completed_knockout_results: completedKnockoutResults,
-        completed_results: completedGroupResults + completedKnockoutResults,
-        updated_at: new Date().toISOString()
-      }
+      rows: ranking,
+      stats,
+      summary: stats
     });
   } catch (error) {
     return json(500, {
-      error: error.message || "Erreur serveur classement V6.2"
+      error: error.message || "Erreur serveur classement V6.2.1"
     });
   }
 };
