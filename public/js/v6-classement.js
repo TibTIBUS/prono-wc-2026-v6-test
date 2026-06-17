@@ -29,7 +29,12 @@ async function loadRanking(){
         <td>
           <div class="name-cell">
             <span class="avatar">${initials(r.employee || r.salarie || r.name)}</span>
-            <span>${escapeHtml(r.employee || r.salarie || r.name)}</span>
+            <a
+              class="player-link"
+              href="/v6-detail.html?id=${r.employee_id}"
+            >
+              ${escapeHtml(r.employee || r.salarie || r.name)}
+            </a>
           </div>
         </td>
         <td><strong>${r.total || 0}</strong></td>
