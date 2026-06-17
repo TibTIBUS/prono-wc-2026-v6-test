@@ -26,10 +26,22 @@
       <p>Classement en direct avec les points des poules et les futurs points des phases finales.</p>
 
       <div class="stats">
-        <div class="stat"><strong id="statLeader">-</strong><span>Leader</span></div>
-        <div class="stat"><strong id="statPlayers">-</strong><span>Participants</span></div>
-        <div class="stat"><strong id="statGroup">-</strong><span>Résultats poules</span></div>
-        <div class="stat"><strong id="statKo">-</strong><span>Résultats phases finales</span></div>
+        <div class="stat">
+          <strong id="statLeader">-</strong>
+          <span>Leader</span>
+        </div>
+        <div class="stat">
+          <strong id="statPlayers">-</strong>
+          <span>Participants</span>
+        </div>
+        <div class="stat">
+          <strong id="statGroup">-</strong>
+          <span>Résultats poules</span>
+        </div>
+        <div class="stat">
+          <strong id="statKo">-</strong>
+          <span>Résultats phases finales</span>
+        </div>
       </div>
     </section>
 
@@ -42,6 +54,7 @@
           <p id="funLeaderDetail">En attente d'historique</p>
         </div>
       </article>
+
       <article class="fun-card">
         <div class="fun-icon">🚀</div>
         <div>
@@ -50,6 +63,7 @@
           <p id="funUpDetail">Aucun mouvement</p>
         </div>
       </article>
+
       <article class="fun-card">
         <div class="fun-icon">📉</div>
         <div>
@@ -60,9 +74,48 @@
       </article>
     </section>
 
+    <section class="fun-grid fun-grid-secondary">
+      <article class="fun-card">
+        <div class="fun-icon">🎯</div>
+        <div>
+          <h3>Roi du score exact</h3>
+          <strong id="funExactName">-</strong>
+          <p id="funExactDetail">Aucun score exact</p>
+        </div>
+      </article>
+
+      <article class="fun-card">
+        <div class="fun-icon">⚽</div>
+        <div>
+          <h3>Roi du bon résultat</h3>
+          <strong id="funGoodName">-</strong>
+          <p id="funGoodDetail">Aucun bon résultat</p>
+        </div>
+      </article>
+
+      <article class="fun-card">
+        <div class="fun-icon">🔥</div>
+        <div>
+          <h3>Série en cours</h3>
+          <strong id="funStreakName">-</strong>
+          <p id="funStreakDetail">Aucune série en cours</p>
+        </div>
+      </article>
+
+      <article class="fun-card">
+        <div class="fun-icon">😭</div>
+        <div>
+          <h3>Presque !</h3>
+          <strong id="funAlmostName">-</strong>
+          <p id="funAlmostDetail">Aucun presque</p>
+        </div>
+      </article>
+    </section>
+
     <section class="card">
       <h3>Tableau général</h3>
       <div id="error" class="error"></div>
+
       <div class="table-wrap">
         <table>
           <thead>
@@ -82,6 +135,7 @@
       </div>
     </section>
   </main>
+
   <script src="/js/v6-common.js"></script>
   <script src="/js/v6-classement.js"></script>
 </body>
