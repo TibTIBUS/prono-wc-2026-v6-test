@@ -7,51 +7,33 @@ function outcome(a, b) {
 }
 
 function groupPoints(pred, real) {
-  if (!pred || !real || pred.score_a === null || pred.score_b === null) {
-    return { points: 0, exact: false, good: false };
-  }
+  if (!pred || !real || pred.score_a === null || pred.score_b === null) return { points: 0, exact: false, good: false };
 
   const predA = Number(pred.score_a);
   const predB = Number(pred.score_b);
   const realA = Number(real.score_a);
   const realB = Number(real.score_b);
 
-  if ([predA, predB, realA, realB].some(Number.isNaN)) {
-    return { points: 0, exact: false, good: false };
-  }
+  if ([predA, predB, realA, realB].some(Number.isNaN)) return { points: 0, exact: false, good: false };
 
-  if (predA === realA && predB === realB) {
-    return { points: 5, exact: true, good: true };
-  }
-
-  if (outcome(predA, predB) === outcome(realA, realB)) {
-    return { points: 2, exact: false, good: true };
-  }
+  if (predA === realA && predB === realB) return { points: 5, exact: true, good: true };
+  if (outcome(predA, predB) === outcome(realA, realB)) return { points: 2, exact: false, good: true };
 
   return { points: 0, exact: false, good: false };
 }
 
 function knockoutPoints(pred, match) {
-  if (!pred || !match || match.status !== "complete" || pred.score_a === null || pred.score_b === null) {
-    return { points: 0, exact: false, good: false };
-  }
+  if (!pred || !match || match.status !== "complete" || pred.score_a === null || pred.score_b === null) return { points: 0, exact: false, good: false };
 
   const predA = Number(pred.score_a);
   const predB = Number(pred.score_b);
   const realA = Number(match.score_a);
   const realB = Number(match.score_b);
 
-  if ([predA, predB, realA, realB].some(Number.isNaN)) {
-    return { points: 0, exact: false, good: false };
-  }
+  if ([predA, predB, realA, realB].some(Number.isNaN)) return { points: 0, exact: false, good: false };
 
-  if (predA === realA && predB === realB) {
-    return { points: 10, exact: true, good: true };
-  }
-
-  if (outcome(predA, predB) === outcome(realA, realB)) {
-    return { points: 5, exact: false, good: true };
-  }
+  if (predA === realA && predB === realB) return { points: 10, exact: true, good: true };
+  if (outcome(predA, predB) === outcome(realA, realB)) return { points: 5, exact: false, good: true };
 
   return { points: 0, exact: false, good: false };
 }
@@ -69,7 +51,6 @@ async function selectAll(db, table, applyOrder) {
     if (error) throw error;
 
     all = all.concat(data || []);
-
     if (!data || data.length < pageSize) break;
     from += pageSize;
   }
@@ -77,50 +58,38 @@ async function selectAll(db, table, applyOrder) {
   return all;
 }
 
-async function getLastSnapshotByEmployee(db) {
+async function getPreviousSnapshotByEmployee(db) {
+  const today = new Date().toISOString().slice(0, 10);
+
   const { data: dates, error: dateError } = await db
     .from("v6_ranking_history")
     .select("snapshot_date")
+    .lt("snapshot_date", today)
     .order("snapshot_date", { ascending: false })
     .limit(1);
 
   if (dateError) throw dateError;
 
-  const lastDate = dates?.[0]?.snapshot_date;
+  const previousDate = dates?.[0]?.snapshot_date;
+  if (!previousDate) return { previousDate: null, map: new Map() };
 
-  if (!lastDate) {
-    return new Map();
-  }
+  const rows = await selectAll(db, "v6_ranking_history", q => q.eq("snapshot_date", previousDate));
 
-  const rows = await selectAll(
-    db,
-    "v6_ranking_history",
-    q => q.eq("snapshot_date", lastDate)
-  );
-
-  return new Map(rows.map(r => [String(r.employee_id), r]));
+  return { previousDate, map: new Map(rows.map(r => [String(r.employee_id), r])) };
 }
 
 exports.handler = async () => {
   try {
     const db = supabase();
+    const previousSnapshot = await getPreviousSnapshotByEmployee(db);
 
-    const [
-      employees,
-      matches,
-      predictions,
-      results,
-      knockoutMatches,
-      knockoutPredictions,
-      lastSnapshotByEmployee
-    ] = await Promise.all([
+    const [employees, matches, predictions, results, knockoutMatches, knockoutPredictions] = await Promise.all([
       selectAll(db, "employees", q => q.order("display_order", { ascending: true }).order("name", { ascending: true })),
       selectAll(db, "matches", q => q.order("position", { ascending: true })),
       selectAll(db, "predictions"),
       selectAll(db, "results"),
       selectAll(db, "v6_knockout_matches"),
-      selectAll(db, "v6_knockout_predictions"),
-      getLastSnapshotByEmployee(db)
+      selectAll(db, "v6_knockout_predictions")
     ]);
 
     const resultsByMatch = new Map(results.map(r => [String(r.match_id), r]));
@@ -129,11 +98,7 @@ exports.handler = async () => {
     for (const prediction of predictions) {
       const employeeId = String(prediction.employee_id);
       const matchId = String(prediction.match_id);
-
-      if (!predictionsByEmployee.has(employeeId)) {
-        predictionsByEmployee.set(employeeId, new Map());
-      }
-
+      if (!predictionsByEmployee.has(employeeId)) predictionsByEmployee.set(employeeId, new Map());
       predictionsByEmployee.get(employeeId).set(matchId, prediction);
     }
 
@@ -142,11 +107,7 @@ exports.handler = async () => {
 
     for (const prediction of knockoutPredictions) {
       const employeeId = String(prediction.employee_id);
-
-      if (!knockoutPredictionsByEmployee.has(employeeId)) {
-        knockoutPredictionsByEmployee.set(employeeId, []);
-      }
-
+      if (!knockoutPredictionsByEmployee.has(employeeId)) knockoutPredictionsByEmployee.set(employeeId, []);
       knockoutPredictionsByEmployee.get(employeeId).push(prediction);
     }
 
@@ -164,11 +125,8 @@ exports.handler = async () => {
         const real = resultsByMatch.get(String(match.id));
         if (!real) continue;
 
-        const pred = byMatch.get(String(match.id));
-        const calc = groupPoints(pred, real);
-
+        const calc = groupPoints(byMatch.get(String(match.id)), real);
         groupTotal += calc.points;
-
         if (calc.exact) exact += 1;
         else if (calc.good) good += 1;
       }
@@ -176,9 +134,7 @@ exports.handler = async () => {
       for (const pred of koPredictions) {
         const match = knockoutMatchById.get(String(pred.match_id));
         const calc = knockoutPoints(pred, match);
-
         knockoutTotal += calc.points;
-
         if (calc.exact) exact += 1;
         else if (calc.good) good += 1;
       }
@@ -209,7 +165,7 @@ exports.handler = async () => {
       )
       .map((row, index) => {
         const currentRank = index + 1;
-        const previous = lastSnapshotByEmployee.get(String(row.employee_id));
+        const previous = previousSnapshot.map.get(String(row.employee_id));
         const previousRank = previous ? Number(previous.rank) : null;
         const movement = previousRank ? previousRank - currentRank : 0;
 
@@ -228,6 +184,7 @@ exports.handler = async () => {
           rank: currentRank,
           rang: currentRank,
           previous_rank: previousRank,
+          previous_snapshot_date: previousSnapshot.previousDate,
           movement,
           evolution: movementLabel,
           evolution_type: movementType,
@@ -235,21 +192,18 @@ exports.handler = async () => {
         };
       });
 
-    const completedGroupResults = results.length;
-    const completedKnockoutResults = knockoutMatches.filter(m => m.status === "complete").length;
-    const leader = ranking[0]?.employee || "-";
-
     const meta = {
       employees: employees.length,
       participants: employees.length,
       matches: matches.length,
-      group_results: completedGroupResults,
-      knockout_results: completedKnockoutResults,
-      results: completedGroupResults,
-      completed_results: completedGroupResults + completedKnockoutResults,
-      completed_group_results: completedGroupResults,
-      completed_knockout_results: completedKnockoutResults,
-      leader,
+      group_results: results.length,
+      knockout_results: knockoutMatches.filter(m => m.status === "complete").length,
+      results: results.length,
+      completed_results: results.length + knockoutMatches.filter(m => m.status === "complete").length,
+      completed_group_results: results.length,
+      completed_knockout_results: knockoutMatches.filter(m => m.status === "complete").length,
+      leader: ranking[0]?.employee || "-",
+      previous_snapshot_date: previousSnapshot.previousDate,
       updated_at: new Date().toISOString()
     };
 
@@ -263,8 +217,6 @@ exports.handler = async () => {
       summary: meta
     });
   } catch (error) {
-    return json(500, {
-      error: error.message || "Erreur serveur classement V6.6"
-    });
+    return json(500, { error: error.message || "Erreur serveur classement V6.6 automatique" });
   }
 };
