@@ -4,15 +4,25 @@ async function loadRanking(){
     const ranking = data.ranking || data.classement || data.rows || [];
     const meta = data.meta || data.stats || data.summary || {};
 
-    document.getElementById("statLeader").textContent = ranking[0]?.employee || ranking[0]?.salarie || "-";
-    document.getElementById("statPlayers").textContent = meta.employees || meta.participants || 0;
-    document.getElementById("statGroup").textContent = meta.completed_group_results || meta.group_results || meta.results || 0;
-    document.getElementById("statKo").textContent = meta.completed_knockout_results || meta.knockout_results || 0;
-    document.getElementById("lastUpdate").textContent = "Mise à jour : " + new Date(meta.updated_at || Date.now()).toLocaleString("fr-FR");
+    document.getElementById("statLeader").textContent =
+      ranking[0]?.employee || ranking[0]?.salarie || "-";
+
+    document.getElementById("statPlayers").textContent =
+      meta.employees || meta.participants || 0;
+
+    document.getElementById("statGroup").textContent =
+      meta.completed_group_results || meta.group_results || meta.results || 0;
+
+    document.getElementById("statKo").textContent =
+      meta.completed_knockout_results || meta.knockout_results || 0;
+
+    document.getElementById("lastUpdate").textContent =
+      "Mise à jour : " + new Date(meta.updated_at || Date.now()).toLocaleString("fr-FR");
 
     document.getElementById("rankingBody").innerHTML = ranking.map(r => `
       <tr>
         <td>${medal(r.rank || r.rang)}</td>
+        <td>${r.evolution || "➖"}</td>
         <td>
           <div class="name-cell">
             <span class="avatar">${initials(r.employee || r.salarie || r.name)}</span>
