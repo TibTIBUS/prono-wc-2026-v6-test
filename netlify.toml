@@ -1,0 +1,18 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/v6-admin"
+  to = "/v6-admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/v6-pronostiquer"
+  to = "/v6-pronostiquer.html"
+  status = 200
+
+[[redirects]]
+  from = "/v6-classement"
+  to = "/v6-classement.html"
+  status = 200
