@@ -1,42 +1,87 @@
 const { json, supabase } = require("./v6-utils");
 
-function outcome(scoreA, scoreB) {
-  const diff = Number(scoreA) - Number(scoreB);
-  if (diff > 0) return "A";
-  if (diff < 0) return "B";
-  return "N";
+function outcome(a, b) {
+  if (Number(a) > Number(b)) return "A";
+  if (Number(a) < Number(b)) return "B";
+  return "D";
 }
 
-function groupPoints(prediction, result) {
-  if (!result) return 0;
+function groupPoints(pred, real) {
+  // Reprise exacte de la logique V5 officielle :
+  // 5 points score exact, 2 points bon résultat.
+  if (!pred || !real || pred.score_a === null || pred.score_b === null) {
+    return { points: 0, exact: false, good: false };
+  }
 
-  const psA = Number(prediction.score_a);
-  const psB = Number(prediction.score_b);
-  const rsA = Number(result.score_a);
-  const rsB = Number(result.score_b);
+  const predA = Number(pred.score_a);
+  const predB = Number(pred.score_b);
+  const realA = Number(real.score_a);
+  const realB = Number(real.score_b);
 
-  if (Number.isNaN(psA) || Number.isNaN(psB) || Number.isNaN(rsA) || Number.isNaN(rsB)) return 0;
+  if ([predA, predB, realA, realB].some(Number.isNaN)) {
+    return { points: 0, exact: false, good: false };
+  }
 
-  if (psA === rsA && psB === rsB) return 5;
-  if (outcome(psA, psB) === outcome(rsA, rsB)) return 2;
+  if (predA === realA && predB === realB) {
+    return { points: 5, exact: true, good: true };
+  }
 
-  return 0;
+  if (outcome(predA, predB) === outcome(realA, realB)) {
+    return { points: 2, exact: false, good: true };
+  }
+
+  return { points: 0, exact: false, good: false };
 }
 
-function knockoutPoints(prediction, match) {
-  if (!match || match.status !== "complete") return 0;
+function knockoutPoints(pred, match) {
+  // Phases finales : score temps réglementaire uniquement.
+  // Barème prévu : 10 points score exact, 5 points bon résultat.
+  if (!pred || !match || match.status !== "complete" || pred.score_a === null || pred.score_b === null) {
+    return { points: 0, exact: false, good: false };
+  }
 
-  const psA = Number(prediction.score_a);
-  const psB = Number(prediction.score_b);
-  const rsA = Number(match.score_a);
-  const rsB = Number(match.score_b);
+  const predA = Number(pred.score_a);
+  const predB = Number(pred.score_b);
+  const realA = Number(match.score_a);
+  const realB = Number(match.score_b);
 
-  if (Number.isNaN(psA) || Number.isNaN(psB) || Number.isNaN(rsA) || Number.isNaN(rsB)) return 0;
+  if ([predA, predB, realA, realB].some(Number.isNaN)) {
+    return { points: 0, exact: false, good: false };
+  }
 
-  if (psA === rsA && psB === rsB) return 10;
-  if (outcome(psA, psB) === outcome(rsA, rsB)) return 5;
+  if (predA === realA && predB === realB) {
+    return { points: 10, exact: true, good: true };
+  }
 
-  return 0;
+  if (outcome(predA, predB) === outcome(realA, realB)) {
+    return { points: 5, exact: false, good: true };
+  }
+
+  return { points: 0, exact: false, good: false };
+}
+
+// Très important : Supabase/PostgREST limite les select à 1000 lignes.
+// La table predictions contient environ 2808 lignes.
+// Sans pagination, le classement est faux.
+async function selectAll(db, table, applyOrder) {
+  const pageSize = 1000;
+  let from = 0;
+  let all = [];
+
+  while (true) {
+    let query = db.from(table).select("*").range(from, from + pageSize - 1);
+    if (applyOrder) query = applyOrder(query);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    all = all.concat(data || []);
+
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return all;
 }
 
 exports.handler = async () => {
@@ -44,102 +89,105 @@ exports.handler = async () => {
     const db = supabase();
 
     const [
-      employeesRes,
-      predictionsRes,
-      resultsRes,
-      knockoutMatchesRes,
-      knockoutPredictionsRes
+      employees,
+      matches,
+      predictions,
+      results,
+      knockoutMatches,
+      knockoutPredictions
     ] = await Promise.all([
-      db.from("employees").select("*"),
-      db.from("predictions").select("*"),
-      db.from("results").select("*"),
-      db.from("v6_knockout_matches").select("*"),
-      db.from("v6_knockout_predictions").select("*")
+      selectAll(db, "employees", q => q.order("display_order", { ascending: true }).order("name", { ascending: true })),
+      selectAll(db, "matches", q => q.order("position", { ascending: true })),
+      selectAll(db, "predictions"),
+      selectAll(db, "results"),
+      selectAll(db, "v6_knockout_matches"),
+      selectAll(db, "v6_knockout_predictions")
     ]);
 
-    for (const res of [employeesRes, predictionsRes, resultsRes, knockoutMatchesRes, knockoutPredictionsRes]) {
-      if (res.error) throw res.error;
+    const resultsByMatch = new Map(results.map(r => [String(r.match_id), r]));
+    const predictionsByEmployee = new Map();
+
+    for (const prediction of predictions) {
+      const employeeId = String(prediction.employee_id);
+      const matchId = String(prediction.match_id);
+
+      if (!predictionsByEmployee.has(employeeId)) {
+        predictionsByEmployee.set(employeeId, new Map());
+      }
+
+      predictionsByEmployee.get(employeeId).set(matchId, prediction);
     }
 
-    const employees = employeesRes.data || [];
-    const predictions = predictionsRes.data || [];
-    const results = resultsRes.data || [];
-    const knockoutMatches = knockoutMatchesRes.data || [];
-    const knockoutPredictions = knockoutPredictionsRes.data || [];
-
-    const resultByMatchId = new Map(results.map(r => [String(r.match_id), r]));
     const knockoutMatchById = new Map(knockoutMatches.map(m => [String(m.id), m]));
+    const knockoutPredictionsByEmployee = new Map();
 
-    const rowsByEmployeeId = new Map();
+    for (const prediction of knockoutPredictions) {
+      const employeeId = String(prediction.employee_id);
 
-    for (const employee of employees) {
-      rowsByEmployeeId.set(String(employee.id), {
+      if (!knockoutPredictionsByEmployee.has(employeeId)) {
+        knockoutPredictionsByEmployee.set(employeeId, []);
+      }
+
+      knockoutPredictionsByEmployee.get(employeeId).push(prediction);
+    }
+
+    const ranking = employees.map(employee => {
+      const employeeId = String(employee.id);
+      const byMatch = predictionsByEmployee.get(employeeId) || new Map();
+      const koPredictions = knockoutPredictionsByEmployee.get(employeeId) || [];
+
+      let groupTotal = 0;
+      let knockoutTotal = 0;
+      let exact = 0;
+      let good = 0;
+
+      for (const match of matches) {
+        const real = resultsByMatch.get(String(match.id));
+        if (!real) continue;
+
+        const pred = byMatch.get(String(match.id));
+        const calc = groupPoints(pred, real);
+
+        groupTotal += calc.points;
+
+        if (calc.exact) exact += 1;
+        else if (calc.good) good += 1;
+      }
+
+      for (const pred of koPredictions) {
+        const match = knockoutMatchById.get(String(pred.match_id));
+        const calc = knockoutPoints(pred, match);
+
+        knockoutTotal += calc.points;
+
+        if (calc.exact) exact += 1;
+        else if (calc.good) good += 1;
+      }
+
+      return {
         employee_id: employee.id,
         employee: employee.name,
         name: employee.name,
         salarie: employee.name,
-        group_points: 0,
-        knockout_points: 0,
-        total: 0,
-        exact_scores: 0,
-        good_results: 0,
-        scores_exacts: 0,
-        bons_resultats: 0,
-        details: []
-      });
-    }
-
-    for (const prediction of predictions) {
-      const employeeId = String(prediction.employee_id);
-      const row = rowsByEmployeeId.get(employeeId);
-      if (!row) continue;
-
-      const result = resultByMatchId.get(String(prediction.match_id));
-      if (!result) continue;
-
-      const pts = groupPoints(prediction, result);
-      row.group_points += pts;
-
-      if (pts === 5) {
-        row.exact_scores += 1;
-        row.scores_exacts += 1;
-      } else if (pts === 2) {
-        row.good_results += 1;
-        row.bons_resultats += 1;
-      }
-    }
-
-    for (const prediction of knockoutPredictions) {
-      const employeeId = String(prediction.employee_id);
-      const row = rowsByEmployeeId.get(employeeId);
-      if (!row) continue;
-
-      const match = knockoutMatchById.get(String(prediction.match_id));
-      if (!match) continue;
-
-      const pts = knockoutPoints(prediction, match);
-      row.knockout_points += pts;
-
-      if (pts === 10) {
-        row.exact_scores += 1;
-        row.scores_exacts += 1;
-      } else if (pts === 5) {
-        row.good_results += 1;
-        row.bons_resultats += 1;
-      }
-    }
-
-    const ranking = Array.from(rowsByEmployeeId.values())
-      .map(row => ({
-        ...row,
-        total: row.group_points + row.knockout_points
-      }))
-      .sort((a, b) => {
-        if (b.total !== a.total) return b.total - a.total;
-        if (b.exact_scores !== a.exact_scores) return b.exact_scores - a.exact_scores;
-        if (b.good_results !== a.good_results) return b.good_results - a.good_results;
-        return String(a.employee).localeCompare(String(b.employee), "fr");
-      })
+        groupTotal,
+        group_points: groupTotal,
+        knockoutTotal,
+        knockout_points: knockoutTotal,
+        total: groupTotal + knockoutTotal,
+        exact,
+        good,
+        exact_scores: exact,
+        good_results: good,
+        scores_exacts: exact,
+        bons_resultats: good
+      };
+    })
+      .sort((a, b) =>
+        b.total - a.total ||
+        b.exact - a.exact ||
+        b.good - a.good ||
+        String(a.employee).localeCompare(String(b.employee), "fr")
+      )
       .map((row, index) => ({
         rank: index + 1,
         rang: index + 1,
@@ -148,18 +196,19 @@ exports.handler = async () => {
 
     const completedGroupResults = results.length;
     const completedKnockoutResults = knockoutMatches.filter(m => m.status === "complete").length;
-    const leader = ranking[0]?.employee || ranking[0]?.salarie || "-";
+    const leader = ranking[0]?.employee || "-";
 
-    const stats = {
+    const meta = {
       employees: employees.length,
       participants: employees.length,
-      leader,
-      matches: 72,
-      group_matches: 72,
+      matches: matches.length,
+      group_results: completedGroupResults,
+      knockout_results: completedKnockoutResults,
       results: completedGroupResults,
       completed_results: completedGroupResults + completedKnockoutResults,
       completed_group_results: completedGroupResults,
       completed_knockout_results: completedKnockoutResults,
+      leader,
       updated_at: new Date().toISOString()
     };
 
@@ -167,12 +216,14 @@ exports.handler = async () => {
       ranking,
       classement: ranking,
       rows: ranking,
-      stats,
-      summary: stats
+      players: ranking,
+      meta,
+      stats: meta,
+      summary: meta
     });
   } catch (error) {
     return json(500, {
-      error: error.message || "Erreur serveur classement V6.2.1"
+      error: error.message || "Erreur serveur classement V6.4"
     });
   }
 };
