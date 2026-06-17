@@ -1,4 +1,4 @@
-const { json } = require("./v6-utils");
+const { json, supabase } = require("./v6-utils");
 
 exports.handler = async () => {
   try {
@@ -17,10 +17,32 @@ exports.handler = async () => {
     const rankingData = await rankingResponse.json();
     const ranking = rankingData.ranking || [];
 
+    const rows = ranking.map(r => ({
+      employee_id: r.employee_id,
+      employee_name: r.employee,
+      rank: r.rank,
+      total_points: r.total,
+      exact_scores: r.exact || r.exact_scores || 0,
+      good_results: r.good || r.good_results || 0,
+      snapshot_date: new Date().toISOString().slice(0, 10)
+    }));
+
+    if (rows.length > 0) {
+      const db = supabase();
+
+      const { error } = await db
+        .from("v6_ranking_history")
+        .insert(rows);
+
+      if (error) {
+        throw error;
+      }
+    }
+
     return json(200, {
       ok: true,
-      message: "Fonction créée. Étape suivante : on connecte l’écriture Supabase.",
-      count: ranking.length
+      message: "Classement du jour enregistré.",
+      saved: rows.length
     });
 
   } catch (error) {
