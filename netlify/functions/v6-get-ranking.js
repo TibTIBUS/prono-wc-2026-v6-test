@@ -7,8 +7,6 @@ function outcome(a, b) {
 }
 
 function groupPoints(pred, real) {
-  // Reprise exacte de la logique V5 officielle :
-  // 5 points score exact, 2 points bon résultat.
   if (!pred || !real || pred.score_a === null || pred.score_b === null) {
     return { points: 0, exact: false, good: false };
   }
@@ -34,8 +32,6 @@ function groupPoints(pred, real) {
 }
 
 function knockoutPoints(pred, match) {
-  // Phases finales : score temps réglementaire uniquement.
-  // Barème prévu : 10 points score exact, 5 points bon résultat.
   if (!pred || !match || match.status !== "complete" || pred.score_a === null || pred.score_b === null) {
     return { points: 0, exact: false, good: false };
   }
@@ -60,9 +56,6 @@ function knockoutPoints(pred, match) {
   return { points: 0, exact: false, good: false };
 }
 
-// Très important : Supabase/PostgREST limite les select à 1000 lignes.
-// La table predictions contient environ 2808 lignes.
-// Sans pagination, le classement est faux.
 async function selectAll(db, table, applyOrder) {
   const pageSize = 1000;
   let from = 0;
@@ -84,6 +77,30 @@ async function selectAll(db, table, applyOrder) {
   return all;
 }
 
+async function getLastSnapshotByEmployee(db) {
+  const { data: dates, error: dateError } = await db
+    .from("v6_ranking_history")
+    .select("snapshot_date")
+    .order("snapshot_date", { ascending: false })
+    .limit(1);
+
+  if (dateError) throw dateError;
+
+  const lastDate = dates?.[0]?.snapshot_date;
+
+  if (!lastDate) {
+    return new Map();
+  }
+
+  const rows = await selectAll(
+    db,
+    "v6_ranking_history",
+    q => q.eq("snapshot_date", lastDate)
+  );
+
+  return new Map(rows.map(r => [String(r.employee_id), r]));
+}
+
 exports.handler = async () => {
   try {
     const db = supabase();
@@ -94,14 +111,16 @@ exports.handler = async () => {
       predictions,
       results,
       knockoutMatches,
-      knockoutPredictions
+      knockoutPredictions,
+      lastSnapshotByEmployee
     ] = await Promise.all([
       selectAll(db, "employees", q => q.order("display_order", { ascending: true }).order("name", { ascending: true })),
       selectAll(db, "matches", q => q.order("position", { ascending: true })),
       selectAll(db, "predictions"),
       selectAll(db, "results"),
       selectAll(db, "v6_knockout_matches"),
-      selectAll(db, "v6_knockout_predictions")
+      selectAll(db, "v6_knockout_predictions"),
+      getLastSnapshotByEmployee(db)
     ]);
 
     const resultsByMatch = new Map(results.map(r => [String(r.match_id), r]));
@@ -188,11 +207,33 @@ exports.handler = async () => {
         b.good - a.good ||
         String(a.employee).localeCompare(String(b.employee), "fr")
       )
-      .map((row, index) => ({
-        rank: index + 1,
-        rang: index + 1,
-        ...row
-      }));
+      .map((row, index) => {
+        const currentRank = index + 1;
+        const previous = lastSnapshotByEmployee.get(String(row.employee_id));
+        const previousRank = previous ? Number(previous.rank) : null;
+        const movement = previousRank ? previousRank - currentRank : 0;
+
+        let movementLabel = "➖";
+        let movementType = "same";
+
+        if (movement > 0) {
+          movementLabel = `⬆️ +${movement}`;
+          movementType = "up";
+        } else if (movement < 0) {
+          movementLabel = `⬇️ ${movement}`;
+          movementType = "down";
+        }
+
+        return {
+          rank: currentRank,
+          rang: currentRank,
+          previous_rank: previousRank,
+          movement,
+          evolution: movementLabel,
+          evolution_type: movementType,
+          ...row
+        };
+      });
 
     const completedGroupResults = results.length;
     const completedKnockoutResults = knockoutMatches.filter(m => m.status === "complete").length;
@@ -223,7 +264,7 @@ exports.handler = async () => {
     });
   } catch (error) {
     return json(500, {
-      error: error.message || "Erreur serveur classement V6.4"
+      error: error.message || "Erreur serveur classement V6.6"
     });
   }
 };
