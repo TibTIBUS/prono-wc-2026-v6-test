@@ -21,3 +21,12 @@
   from = "/v6-classement"
   to = "/v6-classement.html"
   status = 200
+[[redirects]]
+  from = "/v7-admin"
+  to = "/v7-admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/v7-pronostiquer"
+  to = "/v7-pronostiquer.html"
+  status = 200
