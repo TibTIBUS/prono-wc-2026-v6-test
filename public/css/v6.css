@@ -99,3 +99,57 @@ table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:14px;bor
 .badge.success{background:rgba(34,197,94,.18);}
 .badge.danger{background:rgba(239,68,68,.18);}
 @media(max-width:850px){.v7-grid{grid-template-columns:1fr;}}
+/* V7.1 - Bouton classement + cartes par tour */
+.v7-stage-card{
+  margin:22px 0;
+}
+.v7-stage-title{
+  display:grid;
+  grid-template-columns:auto 1fr auto auto;
+  gap:16px;
+  align-items:center;
+  margin-bottom:18px;
+}
+.v7-stage-icon{
+  width:54px;
+  height:54px;
+  border-radius:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  background:rgba(255,255,255,.12);
+}
+.v7-stage-title h3{
+  margin:0;
+  font-size:24px;
+}
+.v7-stage-title p{
+  margin:5px 0 0;
+  opacity:.78;
+}
+.v7-stage-counter{
+  min-width:98px;
+  text-align:center;
+  padding:10px 12px;
+  border-radius:16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.10);
+}
+.v7-stage-counter strong{
+  display:block;
+  font-size:22px;
+}
+.v7-stage-counter span{
+  display:block;
+  font-size:12px;
+  opacity:.75;
+}
+@media(max-width:900px){
+  .v7-stage-title{
+    grid-template-columns:auto 1fr;
+  }
+  .v7-stage-counter{
+    grid-column:span 1;
+  }
+}
