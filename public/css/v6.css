@@ -153,3 +153,26 @@ table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:14px;bor
     grid-column:span 1;
   }
 }
+/* V7.4 - Repères officiels des 16e */
+.v7-slot-box{
+  display:grid;
+  gap:5px;
+  margin:10px 0 14px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(245,158,11,.10);
+  border:1px solid rgba(245,158,11,.25);
+}
+.v7-slot-box span{
+  font-size:12px;
+  opacity:.75;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.v7-slot-box strong{
+  font-size:15px;
+}
+.v7-slot-box em{
+  opacity:.75;
+  font-style:normal;
+}
