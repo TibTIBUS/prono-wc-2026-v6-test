@@ -176,3 +176,47 @@ table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:14px;bor
   opacity:.75;
   font-style:normal;
 }
+/* V7.5 - Administration manuelle des affiches */
+.v7-admin-stage{
+  margin:24px 0;
+}
+.v7-admin-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+}
+.v7-admin-card{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  padding:16px;
+}
+.v7-admin-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.v7-admin-card label{
+  display:block;
+  margin-top:12px;
+  margin-bottom:6px;
+}
+.v7-admin-card select,
+.v7-admin-card input{
+  width:100%;
+}
+.v7-check{
+  display:flex !important;
+  align-items:center;
+  gap:8px;
+}
+.v7-check input{
+  width:auto;
+}
+@media(max-width:900px){
+  .v7-admin-grid{
+    grid-template-columns:1fr;
+  }
+}
