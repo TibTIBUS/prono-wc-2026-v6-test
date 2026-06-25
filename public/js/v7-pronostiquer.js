@@ -1,12 +1,49 @@
+
+const OFFICIAL_SLOTS={
+  "R32-01":{fifa:"M73",slotA:"2e Groupe A",slotB:"2e Groupe B"},
+  "R32-02":{fifa:"M74",slotA:"1er Groupe E",slotB:"Meilleur 3e A/B/C/D/F"},
+  "R32-03":{fifa:"M75",slotA:"1er Groupe F",slotB:"2e Groupe C"},
+  "R32-04":{fifa:"M76",slotA:"1er Groupe C",slotB:"2e Groupe F"},
+  "R32-05":{fifa:"M77",slotA:"1er Groupe I",slotB:"Meilleur 3e C/D/F/G/H"},
+  "R32-06":{fifa:"M78",slotA:"2e Groupe E",slotB:"2e Groupe I"},
+  "R32-07":{fifa:"M79",slotA:"1er Groupe A",slotB:"Meilleur 3e C/E/F/H/I"},
+  "R32-08":{fifa:"M80",slotA:"1er Groupe L",slotB:"Meilleur 3e E/H/I/J/K"},
+  "R32-09":{fifa:"M81",slotA:"1er Groupe D",slotB:"Meilleur 3e B/E/F/I/J"},
+  "R32-10":{fifa:"M82",slotA:"1er Groupe G",slotB:"Meilleur 3e A/E/H/I/J"},
+  "R32-11":{fifa:"M83",slotA:"2e Groupe K",slotB:"2e Groupe L"},
+  "R32-12":{fifa:"M84",slotA:"1er Groupe H",slotB:"2e Groupe J"},
+  "R32-13":{fifa:"M85",slotA:"1er Groupe B",slotB:"Meilleur 3e E/F/G/I/J"},
+  "R32-14":{fifa:"M86",slotA:"1er Groupe J",slotB:"2e Groupe H"},
+  "R32-15":{fifa:"M87",slotA:"1er Groupe K",slotB:"Meilleur 3e D/E/I/J/L"},
+  "R32-16":{fifa:"M88",slotA:"2e Groupe D",slotB:"2e Groupe G"}
+};
+
+const TEAM_FLAGS={
+  "Afrique du Sud":"🇿🇦","Allemagne":"🇩🇪","Angleterre":"🏴","Arabie Saoudite":"🇸🇦","Argentine":"🇦🇷","Australie":"🇦🇺","Autriche":"🇦🇹","Belgique":"🇧🇪","Bolivie":"🇧🇴","Brésil":"🇧🇷","Brazil":"🇧🇷","Cameroun":"🇨🇲","Canada":"🇨🇦","Chili":"🇨🇱","Chine":"🇨🇳","Colombie":"🇨🇴","Corée du Sud":"🇰🇷","Costa Rica":"🇨🇷","Croatie":"🇭🇷","Danemark":"🇩🇰","Écosse":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Ecosse":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Égypte":"🇪🇬","Egypte":"🇪🇬","Équateur":"🇪🇨","Equateur":"🇪🇨","Espagne":"🇪🇸","États-Unis":"🇺🇸","Etats-Unis":"🇺🇸","USA":"🇺🇸","France":"🇫🇷","Ghana":"🇬🇭","Iran":"🇮🇷","Italie":"🇮🇹","Japon":"🇯🇵","Maroc":"🇲🇦","Mexique":"🇲🇽","Nigeria":"🇳🇬","Norvège":"🇳🇴","Nouvelle-Zélande":"🇳🇿","Panama":"🇵🇦","Paraguay":"🇵🇾","Pays-Bas":"🇳🇱","Pérou":"🇵🇪","Perou":"🇵🇪","Pologne":"🇵🇱","Portugal":"🇵🇹","Qatar":"🇶🇦","République tchèque":"🇨🇿","Roumanie":"🇷🇴","Sénégal":"🇸🇳","Senegal":"🇸🇳","Serbie":"🇷🇸","Suisse":"🇨🇭","Suède":"🇸🇪","Tunisie":"🇹🇳","Turquie":"🇹🇷","Ukraine":"🇺🇦","Uruguay":"🇺🇾","Venezuela":"🇻🇪","Pays de Galles":"🏴󠁧󠁢󠁷󠁬󠁳󠁿"
+};
+
 let STATE={employees:[],matches:[],predictions:[]};
 
 const STAGE_INFOS={
-  "16e de finale":{icon:"🏁",title:"16e de finale",text:"Les 16 affiches apparaîtront au fur et à mesure des qualifications."},
+  "16e de finale":{icon:"🏁",title:"16e de finale",text:"Les affiches doivent être saisies dans l'emplacement officiel correspondant."},
   "8e de finale":{icon:"⚔️",title:"8e de finale",text:"Les 8 matchs seront disponibles après les 16e."},
   "Quart de finale":{icon:"🏟️",title:"Quarts de finale",text:"Les 4 affiches seront ouvertes dès que les équipes seront connues."},
   "Demi-finale":{icon:"🔥",title:"Demi-finales",text:"Les 2 derniers matchs avant la finale."},
   "Finale":{icon:"🏆",title:"Finale",text:"Le dernier pronostic de la compétition."}
 };
+
+function flagFor(name){
+  const raw=String(name||"").trim();
+  if(!raw || raw==="En attente" || raw==="À déterminer") return "⏳";
+  if(TEAM_FLAGS[raw]) return TEAM_FLAGS[raw];
+  const found=Object.keys(TEAM_FLAGS).find(k=>raw.toLowerCase().includes(k.toLowerCase()));
+  return found ? TEAM_FLAGS[found] : "🏳️";
+}
+
+function teamHtml(name){
+  const label=name||"En attente";
+  return `<span class="team-flag">${flagFor(label)}</span><span>${escapeHtml(label)}</span>`;
+}
 
 async function init(){await loadEmployeesAndBoard();}
 
@@ -33,20 +70,9 @@ async function loadBoard(){
 }
 
 function getPrediction(matchId){return STATE.predictions.find(p=>String(p.match_id)===String(matchId));}
-
-function known(value){
-  const v=String(value||"").trim().toLowerCase();
-  return v&&!["à déterminer","a determiner","en attente","tbd"].includes(v);
-}
-
-function hasStarted(kickoffAt){
-  if(!kickoffAt)return false;
-  return new Date(kickoffAt).getTime()<=Date.now();
-}
-
-function canPredict(match){
-  return match.is_open&&known(match.team_a)&&known(match.team_b)&&!hasStarted(match.kickoff_at)&&!getPrediction(match.id);
-}
+function known(value){const v=String(value||"").trim().toLowerCase();return v&&!["à déterminer","a determiner","en attente","tbd"].includes(v);}
+function hasStarted(kickoffAt){if(!kickoffAt)return false;return new Date(kickoffAt).getTime()<=Date.now();}
+function canPredict(match){return match.is_open&&known(match.team_a)&&known(match.team_b)&&!hasStarted(match.kickoff_at)&&!getPrediction(match.id);}
 
 function statusLabel(match){
   const pred=getPrediction(match.id);
@@ -59,11 +85,7 @@ function statusLabel(match){
 
 function renderBoard(){
   const grouped={};
-  for(const m of STATE.matches){
-    if(!grouped[m.stage])grouped[m.stage]=[];
-    grouped[m.stage].push(m);
-  }
-
+  for(const m of STATE.matches){if(!grouped[m.stage])grouped[m.stage]=[];grouped[m.stage].push(m);}
   const order=["16e de finale","8e de finale","Quart de finale","Demi-finale","Finale"];
   const entries=order.filter(stage=>grouped[stage]).map(stage=>[stage,grouped[stage]]);
 
@@ -71,29 +93,16 @@ function renderBoard(){
     const info=STAGE_INFOS[stage]||{icon:"⚽",title:stage,text:"Phase finale"};
     const knownCount=rows.filter(m=>known(m.team_a)&&known(m.team_b)).length;
     const predictedCount=rows.filter(m=>getPrediction(m.id)).length;
-
     return `
       <section class="card v7-stage-card">
         <div class="v7-stage-title">
           <div class="v7-stage-icon">${info.icon}</div>
-          <div>
-            <h3>${escapeHtml(info.title)}</h3>
-            <p>${escapeHtml(info.text)}</p>
-          </div>
-          <div class="v7-stage-counter">
-            <strong>${knownCount}/${rows.length}</strong>
-            <span>matchs connus</span>
-          </div>
-          <div class="v7-stage-counter">
-            <strong>${predictedCount}/${rows.length}</strong>
-            <span>validés</span>
-          </div>
+          <div><h3>${escapeHtml(info.title)}</h3><p>${escapeHtml(info.text)}</p></div>
+          <div class="v7-stage-counter"><strong>${knownCount}/${rows.length}</strong><span>matchs connus</span></div>
+          <div class="v7-stage-counter"><strong>${predictedCount}/${rows.length}</strong><span>validés</span></div>
         </div>
-        <div class="v7-grid">
-          ${rows.map(matchCard).join("")}
-        </div>
-      </section>
-    `;
+        <div class="v7-grid">${rows.map(matchCard).join("")}</div>
+      </section>`;
   }).join("");
 }
 
@@ -101,29 +110,20 @@ function matchCard(match){
   const pred=getPrediction(match.id);
   const disabled=!canPredict(match);
   const predText=pred?`<p class="muted">Ton prono : <strong>${pred.score_a} - ${pred.score_b}</strong></p>`:"";
+  const slot=OFFICIAL_SLOTS[match.id];
 
   return `
     <article class="v7-match-card">
-      <div class="v7-match-head">
-        <strong>Match ${match.match_number}</strong>
-        ${statusLabel(match)}
-      </div>
+      <div class="v7-match-head"><strong>${slot?slot.fifa:"Match "+match.match_number}</strong>${statusLabel(match)}</div>
+      ${slot?`<div class="v7-slot-box"><span>Repère officiel</span><strong>${escapeHtml(slot.slotA)}</strong><em>contre</em><strong>${escapeHtml(slot.slotB)}</strong></div>`:""}
       <div class="v7-teams">
-        <div>${escapeHtml(match.team_a||"En attente")}</div>
-        <div>${escapeHtml(match.team_b||"En attente")}</div>
+        <div>${teamHtml(match.team_a||"En attente")}</div>
+        <div>${teamHtml(match.team_b||"En attente")}</div>
       </div>
       <p class="muted">${match.kickoff_at?new Date(match.kickoff_at).toLocaleString("fr-FR"):"Date à confirmer"}</p>
       ${predText}
-      ${pred?"":`
-        <div class="v7-score-row">
-          <input ${disabled?"disabled":""} id="a-${match.id}" type="number" min="0" placeholder="0">
-          <span>-</span>
-          <input ${disabled?"disabled":""} id="b-${match.id}" type="number" min="0" placeholder="0">
-        </div>
-        <button class="btn primary" ${disabled?"disabled":""} onclick="submitPrediction('${match.id}')">Valider ce match</button>
-      `}
-    </article>
-  `;
+      ${pred?"":`<div class="v7-score-row"><input ${disabled?"disabled":""} id="a-${match.id}" type="number" min="0" placeholder="0"><span>-</span><input ${disabled?"disabled":""} id="b-${match.id}" type="number" min="0" placeholder="0"></div><button class="btn primary" ${disabled?"disabled":""} onclick="submitPrediction('${match.id}')">Valider ce match</button>`}
+    </article>`;
 }
 
 async function submitPrediction(matchId){
@@ -134,22 +134,11 @@ async function submitPrediction(matchId){
     const scoreB=Number(document.getElementById(`b-${matchId}`).value);
     if(!Number.isInteger(scoreA)||!Number.isInteger(scoreB)||scoreA<0||scoreB<0)throw new Error("Saisis deux scores valides.");
     if(!confirm("Valider définitivement ce pronostic ?"))return;
-
-    const data=await v6api("v7-submit-prediction",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({employee_id:Number(employeeId),match_id:matchId,score_a:scoreA,score_b:scoreB})
-    });
-
+    const data=await v6api("v7-submit-prediction",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({employee_id:Number(employeeId),match_id:matchId,score_a:scoreA,score_b:scoreB})});
     showBox("success",data.message||"Pronostic enregistré.");
     await loadBoard();
   }catch(e){showBox("error",e.message);}
 }
 
-function showBox(id,msg){
-  const el=document.getElementById(id);
-  el.textContent=msg||"";
-  el.style.display=msg?"block":"none";
-}
-
+function showBox(id,msg){const el=document.getElementById(id);el.textContent=msg||"";el.style.display=msg?"block":"none";}
 init();

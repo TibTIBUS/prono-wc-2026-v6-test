@@ -1,3 +1,4 @@
+
 function authHeaders(){
   return {
     "Content-Type":"application/json",
@@ -26,11 +27,7 @@ const OFFICIAL_SLOTS={
 
 let TEAMS=[];
 
-function showBox(id,msg){
-  const el=document.getElementById(id);
-  el.textContent=msg||"";
-  el.style.display=msg?"block":"none";
-}
+function showBox(id,msg){const el=document.getElementById(id);el.textContent=msg||"";el.style.display=msg?"block":"none";}
 
 async function initBoard(){
   try{
@@ -82,63 +79,35 @@ function toLocalDatetime(value){
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function localInputToIso(value){
+  if(!value) return null;
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 function renderBoard(matches){
   const grouped={};
-  for(const m of matches){
-    if(!grouped[m.stage]) grouped[m.stage]=[];
-    grouped[m.stage].push(m);
-  }
-
+  for(const m of matches){if(!grouped[m.stage]) grouped[m.stage]=[];grouped[m.stage].push(m);}
   document.getElementById("board").innerHTML=Object.entries(grouped).map(([stage,rows])=>`
     <div class="v7-admin-stage">
       <h3>${escapeHtml(stage)}</h3>
-      <div class="v7-admin-grid">
-        ${rows.map(matchEditor).join("")}
-      </div>
-    </div>
-  `).join("");
+      <div class="v7-admin-grid">${rows.map(matchEditor).join("")}</div>
+    </div>`).join("");
 }
 
 function matchEditor(m){
   const slot=OFFICIAL_SLOTS[m.id];
-
   return `
     <article class="v7-admin-card">
-      <div class="v7-admin-head">
-        <strong>${slot ? slot.fifa : "Match "+m.match_number}</strong>
-        <span class="badge ${m.is_open ? "success" : ""}">${m.is_open ? "Ouvert" : "Fermé"}</span>
-      </div>
-
-      ${slot ? `
-        <div class="v7-slot-box">
-          <span>Repère officiel</span>
-          <strong>${escapeHtml(slot.slotA)}</strong>
-          <em>contre</em>
-          <strong>${escapeHtml(slot.slotB)}</strong>
-        </div>
-      ` : ""}
-
-      <label>Équipe A</label>
-      <select id="teamA-${m.id}">
-        ${optionList(m.team_a)}
-      </select>
-
-      <label>Équipe B</label>
-      <select id="teamB-${m.id}">
-        ${optionList(m.team_b)}
-      </select>
-
-      <label>Date et heure du match</label>
-      <input id="kickoff-${m.id}" type="datetime-local" value="${toLocalDatetime(m.kickoff_at)}">
-
-      <label class="v7-check">
-        <input id="open-${m.id}" type="checkbox" ${m.is_open ? "checked" : ""}>
-        Ouvrir les pronostics pour ce match
-      </label>
-
+      <div class="v7-admin-head"><strong>${slot ? slot.fifa : "Match "+m.match_number}</strong><span class="badge ${m.is_open ? "success" : ""}">${m.is_open ? "Ouvert" : "Fermé"}</span></div>
+      ${slot ? `<div class="v7-slot-box"><span>Repère officiel</span><strong>${escapeHtml(slot.slotA)}</strong><em>contre</em><strong>${escapeHtml(slot.slotB)}</strong></div>` : ""}
+      <label>Équipe A</label><select id="teamA-${m.id}">${optionList(m.team_a)}</select>
+      <label>Équipe B</label><select id="teamB-${m.id}">${optionList(m.team_b)}</select>
+      <label>Date et heure du match</label><input id="kickoff-${m.id}" type="datetime-local" value="${toLocalDatetime(m.kickoff_at)}">
+      <label class="v7-check"><input id="open-${m.id}" type="checkbox" ${m.is_open ? "checked" : ""}>Ouvrir les pronostics pour ce match</label>
       <button class="btn primary" onclick="saveMatch('${m.id}')">Enregistrer ce match</button>
-    </article>
-  `;
+    </article>`;
 }
 
 async function saveMatch(id){
@@ -147,25 +116,13 @@ async function saveMatch(id){
     const teamB=document.getElementById(`teamB-${id}`).value;
     const kickoff=document.getElementById(`kickoff-${id}`).value;
     const isOpen=document.getElementById(`open-${id}`).checked;
-
     const data=await v6api("v7-admin-save-match",{
       method:"POST",
       headers:authHeaders(),
-      body:JSON.stringify({
-        id,
-        team_a:teamA,
-        team_b:teamB,
-        kickoff_at:kickoff || null,
-        is_open:isOpen,
-        status:"scheduled"
-      })
+      body:JSON.stringify({id,team_a:teamA,team_b:teamB,kickoff_at:localInputToIso(kickoff),is_open:isOpen,status:"scheduled"})
     });
-
     showBox("success",data.message||"Match enregistré.");
     await loadBoard();
-  }catch(e){
-    showBox("error",e.message);
-  }
+  }catch(e){showBox("error",e.message);}
 }
-
 loadBoard();
