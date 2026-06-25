@@ -220,3 +220,19 @@ table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:14px;bor
     grid-template-columns:1fr;
   }
 }
+/* V7.6 - Drapeaux, règlement et ajustements */
+.team-flag{
+  display:inline-block;
+  min-width:28px;
+  margin-right:8px;
+  font-size:24px;
+  vertical-align:middle;
+}
+.v7-teams div{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+html{
+  scroll-behavior:smooth;
+}
