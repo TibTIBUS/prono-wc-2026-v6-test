@@ -1,3 +1,4 @@
+
 const { json, supabase, requireAdmin } = require("./v6-utils");
 
 function cleanTeam(value) {
@@ -9,8 +10,10 @@ function cleanTeam(value) {
 function cleanDate(value) {
   const v = String(value || "").trim();
   if (!v) return null;
+
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) throw new Error("Date invalide.");
+
   return d.toISOString();
 }
 
@@ -23,7 +26,6 @@ exports.handler = async (event) => {
 
     const body = JSON.parse(event.body || "{}");
     const id = String(body.id || "").trim();
-
     if (!id) throw new Error("ID du match manquant.");
 
     const teamA = cleanTeam(body.team_a);
@@ -36,7 +38,6 @@ exports.handler = async (event) => {
     }
 
     const db = supabase();
-
     const { error } = await db
       .from("v7_knockout_matches")
       .update({
@@ -51,11 +52,7 @@ exports.handler = async (event) => {
 
     if (error) throw error;
 
-    return json(200, {
-      ok: true,
-      message: "Match enregistré.",
-      id
-    });
+    return json(200, { ok: true, message: "Match enregistré.", id });
   } catch (error) {
     return json(error.statusCode || 500, { error: error.message });
   }
