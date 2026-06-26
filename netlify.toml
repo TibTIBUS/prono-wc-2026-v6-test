@@ -30,3 +30,8 @@
   from = "/v7-pronostiquer"
   to = "/v7-pronostiquer.html"
   status = 200
+[[redirects]]
+from = "/classement"
+to = "/v6-classement"
+status = 301
+force = true
