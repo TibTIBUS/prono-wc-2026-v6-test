@@ -28,6 +28,7 @@
 
     <section class="card rules-card" id="reglement">
       <h3>📋 Règlement des pronostics</h3>
+
       <div class="rules-grid">
         <div class="rule-block">
           <h4>🏆 Phase de poules</h4>
@@ -36,6 +37,7 @@
             <li>Bon résultat : <strong>2 points</strong></li>
           </ul>
         </div>
+
         <div class="rule-block">
           <h4>⚽ Phases finales</h4>
           <ul>
@@ -44,7 +46,15 @@
           </ul>
         </div>
       </div>
-      <p class="muted rules-note">🔒 Un pronostic validé ne peut plus être modifié. Les pronostics sont automatiquement fermés au coup d'envoi officiel du match.</p>
+
+      <p class="rules-note">
+        ⚠️ <strong>Pour tous les matchs, le pronostic porte uniquement sur le score à la fin du temps réglementaire (90 minutes + temps additionnel).</strong>
+        Les éventuelles prolongations et la séance de tirs au but ne sont pas prises en compte.
+      </p>
+
+      <p class="muted rules-note">
+        🔒 Un pronostic validé ne peut plus être modifié. Les pronostics sont automatiquement fermés au coup d'envoi officiel du match.
+      </p>
     </section>
 
     <section class="card">
@@ -57,6 +67,7 @@
 
     <section id="board"></section>
   </main>
+
   <script src="/js/v6-common.js"></script>
   <script src="/js/v7-pronostiquer.js"></script>
 </body>
