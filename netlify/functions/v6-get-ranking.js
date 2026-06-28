@@ -6,6 +6,10 @@ function outcome(a, b) {
   return "D";
 }
 
+function isCompleteStatus(status) {
+  return ["complete", "finished", "completed"].includes(String(status || "").toLowerCase());
+}
+
 function groupPoints(pred, real) {
   if (!pred || !real || pred.score_a === null || pred.score_b === null) {
     return { points: 0, exact: false, good: false };
@@ -32,7 +36,15 @@ function groupPoints(pred, real) {
 }
 
 function knockoutPoints(pred, match) {
-  if (!pred || !match || match.status !== "complete" || pred.score_a === null || pred.score_b === null) {
+  if (
+    !pred ||
+    !match ||
+    !isCompleteStatus(match.status) ||
+    pred.score_a === null ||
+    pred.score_b === null ||
+    match.score_a === null ||
+    match.score_b === null
+  ) {
     return { points: 0, exact: false, good: false };
   }
 
@@ -289,8 +301,8 @@ exports.handler = async () => {
       selectAll(db, "matches", q => q.order("position", { ascending: true })),
       selectAll(db, "predictions"),
       selectAll(db, "results"),
-      selectAll(db, "v6_knockout_matches"),
-      selectAll(db, "v6_knockout_predictions")
+      selectAll(db, "v7_knockout_matches"),
+      selectAll(db, "v7_knockout_predictions")
     ]);
 
     const resultsByMatch = new Map(results.map(r => [String(r.match_id), r]));
@@ -403,7 +415,7 @@ exports.handler = async () => {
         };
       });
 
-    const completedKnockoutResults = knockoutMatches.filter(m => m.status === "complete").length;
+    const completedKnockoutResults = knockoutMatches.filter(m => isCompleteStatus(m.status)).length;
     const leader = ranking[0]?.employee || "-";
     const leaderSince = await computeLeaderSince(db, ranking[0]?.employee_id, leader);
     const movers = computeMovers(ranking);
