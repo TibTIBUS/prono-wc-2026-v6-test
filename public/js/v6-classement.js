@@ -78,7 +78,17 @@ function renderFunStats(funStats){
   setText("funStreakDetail", currentStreak.label || "Aucune série en cours");
 
   setText("funAlmostName", almostKing.employee || "-");
-  setText("funAlmostDetail", almostKing.label || "Aucun presque");
+  setText("funAlmostDetail", formatAlmostLabel(almostKing));
+}
+
+function formatAlmostLabel(almostKing){
+  const value = Number(almostKing.value || almostKing.almost || 0);
+
+  if(!value){
+    return "Aucun pronostic à un but près";
+  }
+
+  return `${value} pronostic${value > 1 ? "s" : ""} à un but près`;
 }
 
 function setText(id, value){
