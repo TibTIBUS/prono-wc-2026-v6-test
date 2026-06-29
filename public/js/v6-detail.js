@@ -34,22 +34,45 @@ async function loadPlayerDetail() {
       data.summary?.good_results || 0;
 
     const tbody = document.getElementById("matchesBody");
+    const rows = data.matches || [];
 
-    tbody.innerHTML = (data.matches || []).map(match => `
+    tbody.innerHTML = rows.length ? rows.map(match => `
       <tr>
-        <td>${match.phase || "-"}</td>
+        <td>${escapeHtml(match.phase || "-")}</td>
         <td>${escapeHtml(match.team_a || "-")} - ${escapeHtml(match.team_b || "-")}</td>
-        <td>${match.prediction || "-"}</td>
-        <td>${match.result || "-"}</td>
+        <td>${escapeHtml(match.prediction || "-")}</td>
+        <td>${escapeHtml(match.result || "-")}</td>
         <td><strong>${match.points || 0}</strong></td>
-        <td>${match.label || "-"}</td>
+        <td>${formatLabel(match.label)}</td>
       </tr>
-    `).join("");
+    `).join("") : `
+      <tr>
+        <td colspan="6">Aucun match terminé pour le moment.</td>
+      </tr>
+    `;
 
   } catch (e) {
     document.getElementById("error").innerHTML =
-      `<div class="error">${e.message}</div>`;
+      `<div class="error">${escapeHtml(e.message)}</div>`;
   }
+}
+
+function formatLabel(label) {
+  const value = String(label || "-");
+
+  if (value === "Score exact") {
+    return `<span class="badge success">Score exact</span>`;
+  }
+
+  if (value === "Bon résultat") {
+    return `<span class="badge info">Bon résultat</span>`;
+  }
+
+  if (value === "Raté") {
+    return `<span class="badge danger">Raté</span>`;
+  }
+
+  return `<span class="badge">${escapeHtml(value)}</span>`;
 }
 
 function escapeHtml(text) {
