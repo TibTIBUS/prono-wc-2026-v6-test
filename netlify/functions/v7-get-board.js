@@ -1,4 +1,5 @@
 const { json, supabase } = require("./v6-utils");
+const { syncKnockoutTree } = require("./v7-sync-knockout-tree");
 
 async function selectAll(db, table, applyOrder) {
   const pageSize = 1000;
@@ -41,6 +42,8 @@ exports.handler = async (event) => {
 
   try {
     const db = supabase();
+    await syncKnockoutTree(db);
+
     const params = event.queryStringParameters || {};
     const employeeId = params.employee_id ? Number(params.employee_id) : null;
 
