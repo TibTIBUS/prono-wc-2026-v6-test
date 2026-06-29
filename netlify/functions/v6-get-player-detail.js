@@ -6,6 +6,10 @@ function outcome(a, b) {
   return "D";
 }
 
+function isCompleteStatus(status) {
+  return ["complete", "finished", "completed"].includes(String(status || "").toLowerCase());
+}
+
 function groupPoints(pred, real) {
   if (!pred || !real || pred.score_a === null || pred.score_b === null) {
     return { points: 0, exact: false, good: false, label: "Non joué" };
@@ -32,7 +36,15 @@ function groupPoints(pred, real) {
 }
 
 function knockoutPoints(pred, match) {
-  if (!pred || !match || match.status !== "complete" || pred.score_a === null || pred.score_b === null) {
+  if (
+    !pred ||
+    !match ||
+    !isCompleteStatus(match.status) ||
+    pred.score_a === null ||
+    pred.score_b === null ||
+    match.score_a === null ||
+    match.score_b === null
+  ) {
     return { points: 0, exact: false, good: false, label: "Non joué" };
   }
 
@@ -76,6 +88,10 @@ async function selectAll(db, table, applyOrder) {
   return all;
 }
 
+function dateValue(match) {
+  return new Date(match.kickoff_at || match.updated_at || match.created_at || 0).getTime();
+}
+
 exports.handler = async (event) => {
   try {
     const db = supabase();
@@ -105,12 +121,14 @@ exports.handler = async (event) => {
       selectAll(db, "matches", q => q.order("position", { ascending: true })),
       selectAll(db, "predictions", q => q.eq("employee_id", employeeId)),
       selectAll(db, "results"),
-      selectAll(db, "v6_knockout_matches"),
-      selectAll(db, "v6_knockout_predictions", q => q.eq("employee_id", employeeId))
+      selectAll(db, "v7_knockout_matches", q => q.order("display_order", { ascending: true })),
+      selectAll(db, "v7_knockout_predictions", q => q.eq("employee_id", employeeId))
     ]);
 
     const resultsByMatch = new Map(results.map(r => [String(r.match_id), r]));
     const predictionsByMatch = new Map(predictions.map(p => [String(p.match_id), p]));
+    const knockoutMatchById = new Map(knockoutMatches.map(m => [String(m.id), m]));
+    const knockoutPredictionByMatch = new Map(knockoutPredictions.map(p => [String(p.match_id), p]));
 
     let total = 0;
     let groupTotal = 0;
@@ -118,58 +136,69 @@ exports.handler = async (event) => {
     let exact = 0;
     let good = 0;
 
-    const groupRows = matches.map(match => {
-      const pred = predictionsByMatch.get(String(match.id));
-      const real = resultsByMatch.get(String(match.id));
-      const calc = groupPoints(pred, real);
+    const groupRows = matches
+      .filter(match => resultsByMatch.has(String(match.id)))
+      .map(match => {
+        const pred = predictionsByMatch.get(String(match.id));
+        const real = resultsByMatch.get(String(match.id));
+        const calc = groupPoints(pred, real);
 
-      groupTotal += calc.points;
-      total += calc.points;
+        groupTotal += calc.points;
+        total += calc.points;
 
-      if (calc.exact) exact += 1;
-      else if (calc.good) good += 1;
+        if (calc.exact) exact += 1;
+        else if (calc.good) good += 1;
 
-      return {
-        id: match.id,
-        phase: "Poules",
-        group: match.group_name || match.group || "",
-        position: match.position,
-        team_a: match.team_a,
-        team_b: match.team_b,
-        prediction: pred ? `${pred.score_a} - ${pred.score_b}` : "-",
-        result: real ? `${real.score_a} - ${real.score_b}` : "-",
-        points: calc.points,
-        label: calc.label,
-        exact: calc.exact,
-        good: calc.good
-      };
-    });
+        return {
+          id: match.id,
+          phase: "Poules",
+          group: match.group_name || match.group || "",
+          position: match.position,
+          team_a: match.team_a,
+          team_b: match.team_b,
+          prediction: pred ? `${pred.score_a} - ${pred.score_b}` : "-",
+          result: real ? `${real.score_a} - ${real.score_b}` : "-",
+          points: calc.points,
+          label: calc.label,
+          exact: calc.exact,
+          good: calc.good,
+          kickoff_at: match.kickoff_at || match.match_date || null,
+          display_order: match.position || 0
+        };
+      })
+      .sort((a, b) => Number(b.position || 0) - Number(a.position || 0));
 
-    const knockoutMatchById = new Map(knockoutMatches.map(m => [String(m.id), m]));
+    const knockoutRows = knockoutMatches
+      .filter(match => isCompleteStatus(match.status))
+      .map(match => {
+        const pred = knockoutPredictionByMatch.get(String(match.id));
+        const calc = knockoutPoints(pred, match);
 
-    const knockoutRows = knockoutPredictions.map(pred => {
-      const match = knockoutMatchById.get(String(pred.match_id));
-      const calc = knockoutPoints(pred, match);
+        knockoutTotal += calc.points;
+        total += calc.points;
 
-      knockoutTotal += calc.points;
-      total += calc.points;
+        if (calc.exact) exact += 1;
+        else if (calc.good) good += 1;
 
-      if (calc.exact) exact += 1;
-      else if (calc.good) good += 1;
-
-      return {
-        id: match?.id || pred.match_id,
-        phase: match?.phase || "Phase finale",
-        team_a: match?.team_a || "-",
-        team_b: match?.team_b || "-",
-        prediction: `${pred.score_a} - ${pred.score_b}`,
-        result: match?.status === "complete" ? `${match.score_a} - ${match.score_b}` : "-",
-        points: calc.points,
-        label: calc.label,
-        exact: calc.exact,
-        good: calc.good
-      };
-    });
+        return {
+          id: match.id,
+          phase: match.stage || match.phase || "Phase finale",
+          team_a: match.team_a || "-",
+          team_b: match.team_b || "-",
+          prediction: pred ? `${pred.score_a} - ${pred.score_b}` : "-",
+          result: `${match.score_a} - ${match.score_b}`,
+          points: calc.points,
+          label: calc.label,
+          exact: calc.exact,
+          good: calc.good,
+          kickoff_at: match.kickoff_at || null,
+          display_order: match.display_order || 0
+        };
+      })
+      .sort((a, b) =>
+        dateValue(b) - dateValue(a) ||
+        Number(b.display_order || 0) - Number(a.display_order || 0)
+      );
 
     return json(200, {
       employee: {
@@ -185,7 +214,7 @@ exports.handler = async (event) => {
       },
       group_matches: groupRows,
       knockout_matches: knockoutRows,
-      matches: [...groupRows, ...knockoutRows],
+      matches: [...knockoutRows, ...groupRows],
       updated_at: new Date().toISOString()
     });
 
