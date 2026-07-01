@@ -8,21 +8,24 @@ function isKnockoutRound(round) {
   const r = normalizeText(round);
 
   return (
-    r.includes("round of 32") ||
-    r.includes("round of 16") ||
-    r.includes("1/16") ||
-    r.includes("16th") ||
-    r.includes("last 32") ||
-    r.includes("last 16") ||
-    r.includes("knockout") ||
-    r.includes("play-off") ||
-    r.includes("playoff") ||
-    r.includes("quarter") ||
-    r.includes("quart") ||
-    r.includes("semi") ||
-    r.includes("demi") ||
-    r.includes("final")
-  ) && !r.includes("group");
+    (
+      r.includes("round of 32") ||
+      r.includes("round of 16") ||
+      r.includes("1/16") ||
+      r.includes("16th") ||
+      r.includes("last 32") ||
+      r.includes("last 16") ||
+      r.includes("knockout") ||
+      r.includes("play-off") ||
+      r.includes("playoff") ||
+      r.includes("quarter") ||
+      r.includes("quart") ||
+      r.includes("semi") ||
+      r.includes("demi") ||
+      r.includes("final")
+    ) &&
+    !r.includes("group")
+  );
 }
 
 function stageFromRound(round) {
@@ -83,9 +86,17 @@ async function apiGet(path) {
     headers: { "x-apisports-key": apiKey }
   });
 
-  if (!res.ok) throw new Error(`Erreur API-Football HTTP ${res.status} sur ${path}`);
+  if (!res.ok) {
+    throw new Error(`Erreur API-Football HTTP ${res.status} sur ${path}`);
+  }
 
-  return await res.json();
+  const payload = await res.json();
+
+  if (payload.errors && Object.keys(payload.errors).length > 0) {
+    throw new Error(`Erreur API-Football: ${JSON.stringify(payload.errors)}`);
+  }
+
+  return payload;
 }
 
 async function getFixtures(league, season) {
@@ -101,6 +112,7 @@ async function getCandidateCompetitions() {
 
   function addCandidate(league, season, source, name = "") {
     if (!league || !season) return;
+
     const key = `${league}-${season}`;
     candidates.set(key, {
       league: String(league),
@@ -132,6 +144,7 @@ async function getCandidateCompetitions() {
 
       for (const s of seasons) {
         const year = s.year || s.season;
+
         if (String(year) === "2026") {
           addCandidate(league.id, year, "auto_search", league.name);
         }
@@ -159,7 +172,9 @@ async function chooseBestCompetition() {
         knockout_fixtures: knockout.length
       });
 
-      if (fixtures.length > 0) {
+      // Important :
+      // on ne choisit la compétition que si elle contient des matchs de phase finale.
+      if (knockout.length > 0) {
         return {
           chosen: candidate,
           fixtures,
@@ -176,8 +191,12 @@ async function chooseBestCompetition() {
     }
   }
 
+  const best = tested
+    .filter(x => x.total_fixtures > 0)
+    .sort((a, b) => b.total_fixtures - a.total_fixtures)[0];
+
   return {
-    chosen: candidates[0] || null,
+    chosen: best || candidates[0] || null,
     fixtures: [],
     tested
   };
@@ -192,6 +211,7 @@ function buildRowsFromFixtures(fixtures) {
 
   for (const item of knockoutFixtures) {
     const stage = stageFromRound(item.league?.round);
+
     if (!byStage.has(stage)) byStage.set(stage, []);
     byStage.get(stage).push(item);
   }
@@ -205,6 +225,7 @@ function buildRowsFromFixtures(fixtures) {
       const n = index + 1;
       const id = `${code}-${String(n).padStart(2, "0")}`;
       const status = statusFromApi(item);
+
       const teamA = cleanTeamName(item.teams?.home?.name);
       const teamB = cleanTeamName(item.teams?.away?.name);
       const goals = item.goals || {};
@@ -236,6 +257,7 @@ function buildRowsFromFixtures(fixtures) {
 async function syncV7KnockoutFixtures() {
   const competition = await chooseBestCompetition();
   const fixtures = competition.fixtures || [];
+
   const built = buildRowsFromFixtures(fixtures);
   const rows = built.rows || [];
 
@@ -260,12 +282,16 @@ async function syncV7KnockoutFixtures() {
   };
 }
 
-exports.handler = async (event) => {
+exports.handler = async event => {
   if (event.httpMethod === "OPTIONS") return json(200, {});
-  if (event.httpMethod !== "POST") return json(405, { error: "Méthode non autorisée." });
+
+  if (event.httpMethod !== "POST") {
+    return json(405, { error: "Méthode non autorisée." });
+  }
 
   try {
     requireAdmin(event);
+
     const result = await syncV7KnockoutFixtures();
     return json(200, result);
   } catch (error) {
