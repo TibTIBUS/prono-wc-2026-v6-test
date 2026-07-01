@@ -34,24 +34,42 @@ ne casse rien.
   le reprend à l'exécution suivante.
 - Elle ne touche qu'à la table `v7_knockout_matches`.
 
-## Mise en place du déclencheur planifié (Claude Code on the web)
+## Mise en place de la routine planifiée (Claude Code on the web)
 
-Pour couvrir tout le tournoi (jusqu'au 19 juillet 2026), crée un **déclencheur
-planifié** dans Claude Code on the web plutôt qu'un cron interne à une session (qui
-expire au bout de 7 jours et dépend d'un environnement éphémère) :
+Pour couvrir tout le tournoi (jusqu'au 19 juillet 2026), utilise une **Routine**
+(fonctionnalité « Routines » de Claude Code on the web), plutôt qu'un cron interne à
+une session (qui expire au bout de 7 jours et dépend d'un environnement éphémère).
+Une Routine tourne sur l'infrastructure cloud d'Anthropic, même navigateur fermé.
 
-1. Ouvre ce dépôt dans Claude Code on the web.
-2. Crée une **session planifiée / trigger récurrent** avec :
-   - **Fréquence** : toutes les 30 minutes (ex. `*/30 * * * *`). Les matchs
-     s'enchaînant toutes les quelques heures, ce rythme suffit largement.
-   - **Environnement** : celui de ce dépôt, avec le connecteur **Supabase** et la
-     **recherche web** activés.
-   - **Prompt** : `/remplir-scores-cdm`
-     (ou, à défaut de slash-command dans la session planifiée, colle le contenu de
-     `.claude/commands/remplir-scores-cdm.md`).
-3. Laisse tourner jusqu'à la finale, puis supprime le déclencheur.
+Étapes (interface web) :
 
-Doc de référence : https://code.claude.com/docs/en/claude-code-on-the-web
+1. Va sur **https://claude.ai/code/routines** et clique **New routine**.
+2. **Nom + prompt** : nomme-la (ex. « Scores CDM 2026 ») et mets comme prompt :
+   `/remplir-scores-cdm`
+   (le slash-command est cloné avec le dépôt depuis `.claude/commands/`. En cas de
+   souci, colle à la place tout le contenu de
+   `.claude/commands/remplir-scores-cdm.md`.)
+3. **Repositories** : ajoute ce dépôt (`prono-wc-2026-v6-test`).
+4. **Environment** : laisse **Default** (accès réseau *Trusted*). Le trafic des
+   connecteurs MCP passe par Anthropic, donc Supabase fonctionne sans réglage
+   réseau supplémentaire. Si des recherches web venaient à être bloquées, édite
+   l'environnement et passe **Network access** à *Full* (ou ajoute les domaines).
+5. **Select a trigger** → **Schedule** → fréquence **Hourly** (toutes les heures).
+   ⚠️ L'intervalle minimum d'une Routine est **1 heure** — plus court est refusé.
+   C'est suffisant : les matchs sont espacés de plusieurs heures, et un score sera
+   saisi au plus tard ~1 h après la fin du match.
+6. **Connectors** : vérifie que le connecteur **Supabase** est bien coché (tous tes
+   connecteurs sont inclus par défaut ; retire ceux qui sont inutiles).
+7. Clique **Create**. Pour tester tout de suite, ouvre la routine et clique
+   **Run now**.
+8. Laisse tourner jusqu'à la finale, puis supprime la routine (icône corbeille).
+
+Alternative CLI : `/schedule` dans une session, puis `/schedule list`,
+`/schedule update`, `/schedule run` pour gérer/tester.
+
+Docs de référence :
+- Routines : https://code.claude.com/docs/en/routines
+- Claude Code on the web : https://code.claude.com/docs/en/claude-code-on-the-web
 
 ## Lancement manuel
 
