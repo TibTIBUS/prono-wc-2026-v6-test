@@ -14,8 +14,9 @@ est devenue payante pendant la compétition.
    de 2 h mais dont le score est encore vide ;
 2. récupère le vrai résultat de chacun sur le web (sources fiables : FIFA,
    Eurosport, L'Équipe, Flashscore…) ;
-3. écrit `score_a`, `score_b`, `status = 'finished'` et `winner_team` (l'équipe
-   qualifiée, y compris en cas de qualification aux tirs au but) ;
+3. écrit `score_a`, `score_b` (score à 90 min), `status = 'finished'` et
+   `winner_team` (l'équipe réellement qualifiée, y compris via prolongation ou
+   tirs au but) ;
 4. propage le vainqueur dans le match suivant (`next_match_id` / `next_slot`) et
    ouvre les pronostics des matchs dont les deux équipes sont désormais connues.
 
@@ -26,9 +27,11 @@ ne casse rien.
 
 ## Détails importants
 
-- **Score enregistré** = score à la fin du temps réglementaire + prolongation, hors
-  tirs au but. Un match nul qualifié aux t.a.b. est donc saisi comme un nul (ex.
-  `1-1`), et c'est `winner_team` qui indique qui passe.
+- **Score enregistré = score à la fin du temps réglementaire (90 min) UNIQUEMENT**,
+  sans la prolongation ni les tirs au but. Un match allé en prolongation / t.a.b.
+  était à égalité à 90', il est donc saisi comme un nul (ex. Belgique–Sénégal 3-2
+  a.p. mais 2-2 à 90' → enregistré `2-2`), et c'est `winner_team` qui indique
+  l'équipe réellement qualifiée.
 - La routine **n'invente jamais** un score : si le résultat n'est pas confirmé de
   façon fiable (match encore en cours, prolongation, doute), elle passe le match et
   le reprend à l'exécution suivante.

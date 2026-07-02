@@ -51,17 +51,26 @@ Règles impératives :
   match », « après prolongation », « t.a.b. »). S'il est encore en cours ou si tu
   n'es pas certain du score, **passe ce match** (tu le reprendras à la prochaine
   exécution) et signale-le dans ton compte-rendu. Ne devine pas.
-- **Score à enregistrer = score à la fin du temps réglementaire + prolongation**,
-  SANS compter les tirs au but. (Ex. un 1-1 qui se qualifie aux t.a.b. se
-  saisit `score_a = 1`, `score_b = 1`.)
+- **Score à enregistrer = score à la fin du TEMPS RÉGLEMENTAIRE (90 min + arrêts de
+  jeu) UNIQUEMENT. On NE compte NI la prolongation NI les tirs au but.**
+  - ⚠️ Attention : le score « à la une » affiché par les sites inclut souvent la
+    prolongation (mention `a.p.` / `after extra time`) ou les t.a.b. (`t.a.b.` /
+    `pen.`). Si le match est allé en prolongation ou aux t.a.b., il était forcément
+    **à égalité à la fin des 90 min** : va chercher dans le résumé / la chronologie
+    le score **à la mi-temps de fin de match, soit à 90'** (avant prolongation), et
+    c'est CE score-là qu'il faut enregistrer.
+  - Exemples : Belgique–Sénégal fini 3-2 après prolongation mais 2-2 à 90' →
+    `score_a = 2`, `score_b = 2`. Un 1-1 qualifié aux t.a.b. → `score_a = 1`,
+    `score_b = 1`.
 - `team_a` correspond à la première équipe de la ligne, `team_b` à la seconde :
   respecte bien l'ordre des colonnes de la table, pas l'ordre du titre trouvé en ligne.
 
 ## Étape 3 — Écrire le score dans Supabase
 
 Pour chaque match confirmé, fais un UPDATE. Détermine le **vainqueur qualifié**
-(`winner_team`) — l'équipe qui passe au tour suivant (vainqueur au score, ou
-vainqueur des tirs au but en cas d'égalité) :
+(`winner_team`) — l'équipe qui passe réellement au tour suivant : vainqueur au
+score de 90', OU, si le score à 90' est un nul, le vainqueur **en prolongation ou
+aux tirs au but** :
 
 ```sql
 update public.v7_knockout_matches
@@ -74,9 +83,10 @@ where id = '<id_du_match>'
   and score_a is null;   -- garde-fou d'idempotence : n'écrase pas un score déjà saisi
 ```
 
-- Renseigner `winner_team` est **obligatoire pour les matchs nuls décidés aux tirs
-  au but** (sinon le bracket ne peut pas savoir qui avance). Pour les autres, tu
-  peux le renseigner aussi : c'est cohérent et sans risque.
+- Renseigner `winner_team` est **obligatoire dès que le score enregistré est un nul**
+  (match décidé en prolongation ou aux tirs au but) : sinon le bracket ne peut pas
+  savoir qui avance. Pour les matchs tranchés dans le temps réglementaire, tu peux le
+  renseigner aussi : c'est cohérent et sans risque.
 
 ## Étape 4 — Faire avancer le bracket (propagation du vainqueur)
 
