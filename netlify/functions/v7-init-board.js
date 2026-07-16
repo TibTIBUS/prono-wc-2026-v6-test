@@ -5,6 +5,7 @@ const STAGES = [
   { stage: "8e de finale", code: "R16", count: 8 },
   { stage: "Quart de finale", code: "QF", count: 4 },
   { stage: "Demi-finale", code: "SF", count: 2 },
+  { stage: "Petite finale", code: "BF", count: 1 },
   { stage: "Finale", code: "F", count: 1 }
 ];
 

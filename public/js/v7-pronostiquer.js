@@ -29,6 +29,7 @@ const STAGE_INFOS={
   "8e de finale":{icon:"⚔️",title:"8e de finale",text:"Les 8 matchs seront disponibles après les 16e."},
   "Quart de finale":{icon:"🏟️",title:"Quarts de finale",text:"Les 4 affiches seront ouvertes dès que les équipes seront connues."},
   "Demi-finale":{icon:"🔥",title:"Demi-finales",text:"Les 2 derniers matchs avant la finale."},
+  "Petite finale":{icon:"🥉",title:"Match pour la troisième place",text:"Le pronostic pour la médaille de bronze."},
   "Finale":{icon:"🏆",title:"Finale",text:"Le dernier pronostic de la compétition."}
 };
 
@@ -86,7 +87,7 @@ function statusLabel(match){
 function renderBoard(){
   const grouped={};
   for(const m of STATE.matches){if(!grouped[m.stage])grouped[m.stage]=[];grouped[m.stage].push(m);}
-  const order=["16e de finale","8e de finale","Quart de finale","Demi-finale","Finale"];
+  const order=["16e de finale","8e de finale","Quart de finale","Demi-finale","Petite finale","Finale"];
   const entries=order.filter(stage=>grouped[stage]).map(stage=>[stage,grouped[stage]]);
 
   document.getElementById("board").innerHTML=entries.map(([stage,rows])=>{

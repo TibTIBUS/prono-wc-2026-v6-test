@@ -71,6 +71,8 @@ function isKnockoutRound(round) {
     r.includes("8th finals") ||
     r.includes("quarter") ||
     r.includes("semi") ||
+    r.includes("third") ||
+    r.includes("bronze") ||
     r.includes("final")
   );
 }
@@ -82,6 +84,7 @@ function stageFromRound(round) {
   if (r.includes("round of 16") || r.includes("8th finals")) return "8e de finale";
   if (r.includes("quarter")) return "Quart de finale";
   if (r.includes("semi")) return "Demi-finale";
+  if (r.includes("third") || r.includes("bronze")) return "Petite finale";
   if (r.includes("final")) return "Finale";
 
   return null;

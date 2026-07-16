@@ -22,6 +22,8 @@ function isKnockoutRound(round) {
       r.includes("quart") ||
       r.includes("semi") ||
       r.includes("demi") ||
+      r.includes("third") ||
+      r.includes("bronze") ||
       r.includes("final")
     ) &&
     !r.includes("group")
@@ -35,6 +37,7 @@ function stageFromRound(round) {
   if (r.includes("round of 16") || r.includes("last 16")) return "8e de finale";
   if (r.includes("quarter") || r.includes("quart")) return "Quart de finale";
   if (r.includes("semi") || r.includes("demi")) return "Demi-finale";
+  if (r.includes("third") || r.includes("bronze")) return "Petite finale";
   if (r.includes("final")) return "Finale";
 
   return "Phase finale";
@@ -45,6 +48,7 @@ function codeFromStage(stage) {
   if (stage === "8e de finale") return "R16";
   if (stage === "Quart de finale") return "QF";
   if (stage === "Demi-finale") return "SF";
+  if (stage === "Petite finale") return "BF";
   if (stage === "Finale") return "F";
   return "KO";
 }
@@ -54,6 +58,7 @@ function baseOrder(code) {
   if (code === "R16") return 20;
   if (code === "QF") return 40;
   if (code === "SF") return 60;
+  if (code === "BF") return 70;
   if (code === "F") return 80;
   return 100;
 }
