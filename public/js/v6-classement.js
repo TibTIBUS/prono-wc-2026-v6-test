@@ -40,6 +40,7 @@ async function loadRanking(){
         <td><strong>${r.total || 0}</strong></td>
         <td>${r.group_points || r.groupTotal || 0}</td>
         <td>${r.knockout_points || r.knockoutTotal || 0}</td>
+        <td>${formatBonus(r)}</td>
         <td>${r.exact_scores || r.scores_exacts || r.exact || 0}</td>
         <td>${r.good_results || r.bons_resultats || r.good || 0}</td>
       </tr>
@@ -94,6 +95,14 @@ function formatAlmostLabel(almostKing){
 function setText(id, value){
   const el = document.getElementById(id);
   if(el) el.textContent = value;
+}
+
+function formatBonus(row){
+  const points = Number(row.bonus_points || row.bonusTotal || 0);
+  if(!points) return '<span class="muted">—</span>';
+
+  const label = escapeHtml(row.bonus_label || "Bonus champion");
+  return `<span class="champion-bonus">+${points} pts – ${label} 🏆</span>`;
 }
 
 function formatEvolution(row){
