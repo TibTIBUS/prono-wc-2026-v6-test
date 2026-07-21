@@ -296,13 +296,14 @@ exports.handler = async () => {
     const db = supabase();
     const previousSnapshot = await getPreviousSnapshotByEmployee(db);
 
-    const [employees, matches, predictions, results, knockoutMatches, knockoutPredictions] = await Promise.all([
+    const [employees, matches, predictions, results, knockoutMatches, knockoutPredictions, bonusPoints] = await Promise.all([
       selectAll(db, "employees", q => q.order("display_order", { ascending: true }).order("name", { ascending: true })),
       selectAll(db, "matches", q => q.order("position", { ascending: true })),
       selectAll(db, "predictions"),
       selectAll(db, "results"),
       selectAll(db, "v7_knockout_matches"),
-      selectAll(db, "v7_knockout_predictions")
+      selectAll(db, "v7_knockout_predictions"),
+      selectAll(db, "v7_bonus_points")
     ]);
 
     const resultsByMatch = new Map(results.map(r => [String(r.match_id), r]));
@@ -332,10 +333,16 @@ exports.handler = async () => {
       knockoutPredictionsByEmployee.get(employeeId).push(prediction);
     }
 
+    const bonusByEmployee = new Map(
+      bonusPoints.map(bonus => [String(bonus.employee_id), bonus])
+    );
+
     const ranking = employees.map(employee => {
       const employeeId = String(employee.id);
       const byMatch = predictionsByEmployee.get(employeeId) || new Map();
       const koPredictions = knockoutPredictionsByEmployee.get(employeeId) || [];
+      const bonus = bonusByEmployee.get(employeeId);
+      const bonusTotal = Number(bonus?.points || 0);
 
       let groupTotal = 0;
       let knockoutTotal = 0;
@@ -371,7 +378,11 @@ exports.handler = async () => {
         group_points: groupTotal,
         knockoutTotal,
         knockout_points: knockoutTotal,
-        total: groupTotal + knockoutTotal,
+        bonusTotal,
+        bonus_points: bonusTotal,
+        bonus_label: bonus?.label || "",
+        champion_team: bonus?.team || "",
+        total: groupTotal + knockoutTotal + bonusTotal,
         exact,
         good,
         exact_scores: exact,
@@ -439,6 +450,7 @@ exports.handler = async () => {
       matches: matches.length,
       group_results: results.length,
       knockout_results: completedKnockoutResults,
+      bonuses: bonusPoints.length,
       results: results.length,
       completed_results: results.length + completedKnockoutResults,
       completed_group_results: results.length,
