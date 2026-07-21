@@ -236,3 +236,17 @@ table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:14px;bor
 html{
   scroll-behavior:smooth;
 }
+
+/* V7.8 - Bonus pronostic du champion du monde */
+.champion-bonus{
+  display:inline-flex;
+  align-items:center;
+  white-space:nowrap;
+  padding:7px 10px;
+  border-radius:999px;
+  color:#fff3c4;
+  background:rgba(245,176,65,.18);
+  border:1px solid rgba(245,176,65,.42);
+  font-size:12px;
+  font-weight:900;
+}
